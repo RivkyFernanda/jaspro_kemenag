@@ -7,28 +7,17 @@ Aplikasi web modern berbasis **Next.js (App Router)** dan **Supabase (PostgreSQL
 ## 🚀 Fitur Utama
 
 1. **Autentikasi Pegawai/Admin (`/login`)**:
-   - Autentikasi berbasis database Supabase (`users` table) dengan password hash bcrypt.
-   - Default testing: username `admin`, password `admin123`.
+ 
 
 2. **Kelola Master Data (`/admin`)**:
-   - **Kecamatan**: Tambah, edit, dan aktif/nonaktifkan kecamatan.
-   - **Penghulu**: Tambah, edit, dan ubah status penghulu menjadi **Aktif** atau **Pensiun**.
-   - *Data Safety*: Mengubah status penghulu menjadi pensiun tidak akan menghapus data riwayat laporan di masa lalu (`ON DELETE RESTRICT`).
+
 
 3. **Form Input Laporan Jaspro (`/input`)**:
-   - Filter bertingkat: Memilih Kecamatan akan otomatis memfilter daftar Penghulu yang terdaftar di kecamatan tersebut dan **hanya yang berstatus 'aktif'**.
-   - Input Bulan, Tanggal Pelaksanaan, Jam Pelaksanaan, dan Nomor Surat.
-   - Data langsung tersimpan ke Supabase tanpa data tiruan/dummy.
 
 4. **Rekapitulasi & Realtime Search Engine (`/rekap`)**:
-   - Pencarian cerdas realtime berdasarkan **Nama Penghulu**, **Nomor Surat**, atau **Kecamatan**.
-   - Filter gabungan berdasarkan Bulan dan Kecamatan.
-   - Menampilkan status penghulu saat ini tanpa merusak data historis.
 
 5. **Export Excel (.xlsx)**:
-   - Unduh rekapitulasi data laporan yang terfilter secara langsung ke file Excel menggunakan SheetJS (`xlsx`) dengan format lebar kolom yang teratur.
 
----
 
 ## 📋 Langkah Instalasi & Penggunaan
 
