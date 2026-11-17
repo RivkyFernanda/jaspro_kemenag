@@ -79,7 +79,7 @@ export default function InputLaporanPage() {
       try {
         const { data, error } = await supabase
           .from('penghulu')
-          .select('id, nama_penghulu, status')
+          .select('id, nama_penghulu, nip, status')
           .eq('kecamatan_id', selectedKecamatan)
           .eq('status', 'aktif') // KETENTUAN KETAT: Hanya status 'aktif'
           .order('nama_penghulu', { ascending: true });
@@ -242,13 +242,13 @@ export default function InputLaporanPage() {
               </option>
               {penghuluAktifList.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.nama_penghulu}
+                  {p.nama_penghulu} {p.nip ? `(NIP. ${p.nip})` : ''}
                 </option>
               ))}
             </select>
             {selectedKecamatan && penghuluAktifList.length === 0 && !loadingPenghulu && (
               <p className="text-xs text-amber-600 mt-1">
-                Catatan: Penghulu yang sudah berstatus <em>pensiun</em> tidak akan ditampilkan di formulir ini.
+                Catatan: Penghulu yang berstatus <em>non aktif</em> tidak akan ditampilkan di formulir ini.
               </p>
             )}
           </div>

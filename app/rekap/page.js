@@ -73,6 +73,7 @@ export default function RekapitulasiPage() {
           penghulu (
             id,
             nama_penghulu,
+            nip,
             status
           )
         `)
@@ -88,10 +89,11 @@ export default function RekapitulasiPage() {
   };
 
   // SEARCH ENGINE & REALTIME FILTER
-  // Mencari berdasarkan: Nama Penghulu, Nomor Surat, atau Nama Kecamatan
+  // Mencari berdasarkan: Nama Penghulu, NIP, Nomor Surat, atau Nama Kecamatan
   const filteredData = useMemo(() => {
     return laporanList.filter((item) => {
       const namaPenghulu = item.penghulu?.nama_penghulu?.toLowerCase() || '';
+      const nipPenghulu = item.penghulu?.nip?.toLowerCase() || '';
       const namaKecamatan = item.kecamatan?.nama_kecamatan?.toLowerCase() || '';
       const noSurat = item.nomor_surat?.toLowerCase() || '';
       const search = searchTerm.toLowerCase().trim();
@@ -99,6 +101,7 @@ export default function RekapitulasiPage() {
       const matchesSearch =
         !search ||
         namaPenghulu.includes(search) ||
+        nipPenghulu.includes(search) ||
         namaKecamatan.includes(search) ||
         noSurat.includes(search);
 
@@ -125,7 +128,8 @@ export default function RekapitulasiPage() {
       'Nomor Surat': item.nomor_surat,
       Kecamatan: item.kecamatan?.nama_kecamatan || '-',
       'Nama Penghulu': item.penghulu?.nama_penghulu || '-',
-      'Status Penghulu Saat Ini': item.penghulu?.status === 'aktif' ? 'Aktif' : 'Pensiun',
+      'NIP Penghulu': item.penghulu?.nip || '-',
+      'Status Penghulu Saat Ini': item.penghulu?.status === 'aktif' ? 'Aktif' : 'Non Aktif',
       Bulan: item.bulan,
       'Tanggal Pelaksanaan': item.tanggal,
       'Jam Pelaksanaan': item.jam_pelaksanaan,
@@ -141,6 +145,7 @@ export default function RekapitulasiPage() {
       { wch: 30 }, // Nomor Surat
       { wch: 22 }, // Kecamatan
       { wch: 28 }, // Nama Penghulu
+      { wch: 24 }, // NIP Penghulu
       { wch: 24 }, // Status Penghulu
       { wch: 14 }, // Bulan
       { wch: 18 }, // Tanggal Pelaksanaan
@@ -201,7 +206,7 @@ export default function RekapitulasiPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cari Penghulu, No. Surat, atau Kecamatan..."
+              placeholder="Cari Nama Penghulu, NIP, No. Surat, atau Kecamatan..."
               className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition"
             />
           </div>
@@ -306,8 +311,11 @@ export default function RekapitulasiPage() {
                     <td className="py-3.5 px-4 text-slate-700">
                       {row.kecamatan?.nama_kecamatan || '-'}
                     </td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-900">
-                      {row.penghulu?.nama_penghulu || '-'}
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-slate-900">{row.penghulu?.nama_penghulu || '-'}</div>
+                      <div className="text-xs text-slate-400 font-mono">
+                        {row.penghulu?.nip ? `NIP. ${row.penghulu?.nip}` : 'NIP: -'}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 text-slate-700">
                       <span className="bg-slate-100 px-2 py-0.5 rounded text-xs font-medium">
@@ -319,14 +327,14 @@ export default function RekapitulasiPage() {
                       <div className="text-slate-400">{row.jam_pelaksanaan} WIB</div>
                     </td>
                     <td className="py-3.5 px-4 text-center">
-                      {/* Histori aman: data laporan masa lalu tetap tampil meskipun penghulu berstatus pensiun */}
+                      {/* Histori aman: data laporan masa lalu tetap tampil meskipun status penghulu non aktif */}
                       {row.penghulu?.status === 'aktif' ? (
-                        <span className="inline-block bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2 py-0.5 rounded-full font-medium">
+                        <span className="inline-block bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2.5 py-0.5 rounded-full font-medium">
                           Aktif
                         </span>
                       ) : (
-                        <span className="inline-block bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2 py-0.5 rounded-full font-medium">
-                          Pensiun
+                        <span className="inline-block bg-slate-100 text-slate-700 border border-slate-300 text-xs px-2.5 py-0.5 rounded-full font-medium">
+                          Non Aktif
                         </span>
                       )}
                     </td>

@@ -28,8 +28,9 @@ CREATE TABLE IF NOT EXISTS kecamatan (
 CREATE TABLE IF NOT EXISTS penghulu (
     id BIGSERIAL PRIMARY KEY,
     nama_penghulu VARCHAR(150) NOT NULL,
+    nip VARCHAR(50),
     kecamatan_id BIGINT REFERENCES kecamatan(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    status VARCHAR(20) DEFAULT 'aktif' CHECK (status IN ('aktif', 'pensiun')),
+    status VARCHAR(20) DEFAULT 'aktif' CHECK (status IN ('aktif', 'non aktif', 'pensiun')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

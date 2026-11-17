@@ -27,6 +27,7 @@ export default function AdminMasterPage() {
   // State Penghulu
   const [penghuluList, setPenghuluList] = useState([]);
   const [namaPenghulu, setNamaPenghulu] = useState('');
+  const [nipPenghulu, setNipPenghulu] = useState('');
   const [selectedKecId, setSelectedKecId] = useState('');
   const [statusPenghulu, setStatusPenghulu] = useState('aktif');
   const [editPenghuluId, setEditPenghuluId] = useState(null);
@@ -75,6 +76,7 @@ export default function AdminMasterPage() {
         .select(`
           id,
           nama_penghulu,
+          nip,
           status,
           kecamatan_id,
           kecamatan (
@@ -159,6 +161,7 @@ export default function AdminMasterPage() {
           .from('penghulu')
           .update({
             nama_penghulu: namaPenghulu.trim(),
+            nip: nipPenghulu.trim() || null,
             kecamatan_id: selectedKecId,
             status: statusPenghulu,
           })
@@ -172,6 +175,7 @@ export default function AdminMasterPage() {
           .from('penghulu')
           .insert([{
             nama_penghulu: namaPenghulu.trim(),
+            nip: nipPenghulu.trim() || null,
             kecamatan_id: selectedKecId,
             status: statusPenghulu,
           }]);
@@ -181,6 +185,7 @@ export default function AdminMasterPage() {
       }
 
       setNamaPenghulu('');
+      setNipPenghulu('');
       setSelectedKecId('');
       setStatusPenghulu('aktif');
       setEditPenghuluId(null);
@@ -192,9 +197,11 @@ export default function AdminMasterPage() {
     }
   };
 
-  // Toggle status aktif/pensiun penghulu secara aman tanpa menghapus histori laporan
+  // Toggle status aktif/non aktif penghulu secara aman tanpa menghapus histori laporan
   const handleToggleStatusPenghulu = async (penghulu) => {
-    const nextStatus = penghulu.status === 'aktif' ? 'pensiun' : 'aktif';
+    // Dukung fallback status 'pensiun' maupun 'non aktif'
+    const isCurrentlyActive = penghulu.status === 'aktif';
+    const nextStatus = isCurrentlyActive ? 'non aktif' : 'aktif';
     try {
       const { error } = await supabase
         .from('penghulu')
@@ -213,7 +220,7 @@ export default function AdminMasterPage() {
   };
 
   // Hapus penghulu: Jika sudah pernah memiliki data laporan, sistem otomatis menjaga histori
-  // dengan mengalihkan status menjadi 'pensiun' (agar data laporan masa lalu tetap aman).
+  // dengan mengalihkan status menjadi 'non aktif' (agar data laporan masa lalu tetap aman).
   // Jika belum pernah ada laporan, data dapat dihapus permanen dari daftar master.
   const handleDeletePenghulu = async (penghulu) => {
     const confirmDelete = window.confirm(
@@ -231,17 +238,17 @@ export default function AdminMasterPage() {
       if (countError) throw countError;
 
       if (count && count > 0) {
-        // Jika sudah ada riwayat laporan (misal 5 laporan), jangan hapus fisik baris datanya!
-        // Ubah status menjadi 'pensiun' agar tidak muncul lagi di pilihan form baru namun riwayat laporan tetap utuh.
+        // Jika sudah ada riwayat laporan, jangan hapus fisik baris datanya!
+        // Ubah status menjadi 'non aktif' agar tidak muncul lagi di pilihan form baru namun riwayat laporan tetap utuh.
         const { error: updateError } = await supabase
           .from('penghulu')
-          .update({ status: 'pensiun' })
+          .update({ status: 'non aktif' })
           .eq('id', penghulu.id);
 
         if (updateError) throw updateError;
         showNotice(
           'success',
-          `Penghulu memiliki ${count} riwayat laporan. Penghulu dinonaktifkan (Pensiun) agar laporan historis tetap utuh dan aman!`
+          `Penghulu memiliki ${count} riwayat laporan. Penghulu dinonaktifkan (Status: Non Aktif) agar laporan historis tetap utuh dan aman!`
         );
       } else {
         // Jika belum pernah ada laporan sama sekali, hapus permanen dari database
@@ -419,7 +426,7 @@ export default function AdminMasterPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Nama Penghulu
+                    Nama Penghulu *
                   </label>
                   <input
                     type="text"
@@ -432,22 +439,35 @@ export default function AdminMasterPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Kecamatan Tugas
+                    NIP Penghulu (Nomor Induk Pegawai)
                   </label>
-                  <select
-                    value={selectedKecId}
-                    onChange={(e) => setSelectedKecId(e.target.value)}
-                    required
+                  <input
+                    type="text"
+                    placeholder="Contoh: 198001012005011002"
+                    value={nipPenghulu}
+                    onChange={(e) => setNipPenghulu(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-600 focus:outline-none"
-                  >
-                    <option value="">-- Pilih Kecamatan --</option>
-                    {kecamatanList.map((kec) => (
-                      <option key={kec.id} value={kec.id}>
-                        {kec.nama_kecamatan} {!kec.is_active && '(Nonaktif)'}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Kecamatan Tugas *
+                </label>
+                <select
+                  value={selectedKecId}
+                  onChange={(e) => setSelectedKecId(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-600 focus:outline-none"
+                >
+                  <option value="">-- Pilih Kecamatan --</option>
+                  {kecamatanList.map((kec) => (
+                    <option key={kec.id} value={kec.id}>
+                      {kec.nama_kecamatan} {!kec.is_active && '(Nonaktif)'}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex items-center justify-between pt-1">
@@ -469,12 +489,12 @@ export default function AdminMasterPage() {
                       <input
                         type="radio"
                         name="status"
-                        value="pensiun"
-                        checked={statusPenghulu === 'pensiun'}
+                        value="non aktif"
+                        checked={statusPenghulu === 'non aktif' || statusPenghulu === 'pensiun'}
                         onChange={(e) => setStatusPenghulu(e.target.value)}
                         className="text-teal-600 focus:ring-teal-500"
                       />
-                      <span>Pensiun</span>
+                      <span>Non Aktif</span>
                     </label>
                   </div>
                 </div>
@@ -486,6 +506,7 @@ export default function AdminMasterPage() {
                       onClick={() => {
                         setEditPenghuluId(null);
                         setNamaPenghulu('');
+                        setNipPenghulu('');
                         setSelectedKecId('');
                         setStatusPenghulu('aktif');
                       }}
@@ -511,7 +532,7 @@ export default function AdminMasterPage() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-500 bg-slate-50">
-                    <th className="py-2.5 px-3 font-semibold">Nama Penghulu</th>
+                    <th className="py-2.5 px-3 font-semibold">Nama & NIP Penghulu</th>
                     <th className="py-2.5 px-3 font-semibold">Kecamatan</th>
                     <th className="py-2.5 px-3 font-semibold text-center">Status</th>
                     <th className="py-2.5 px-3 font-semibold text-right">Aksi</th>
@@ -527,8 +548,11 @@ export default function AdminMasterPage() {
                   ) : (
                     penghuluList.map((item) => (
                       <tr key={item.id} className="hover:bg-slate-50">
-                        <td className="py-2.5 px-3 font-medium text-slate-800">
-                          {item.nama_penghulu}
+                        <td className="py-2.5 px-3">
+                          <div className="font-medium text-slate-800">{item.nama_penghulu}</div>
+                          <div className="text-xs text-slate-400 font-mono">
+                            {item.nip ? `NIP. ${item.nip}` : 'NIP: -'}
+                          </div>
                         </td>
                         <td className="py-2.5 px-3 text-slate-600">
                           {item.kecamatan?.nama_kecamatan || '-'}
@@ -536,7 +560,7 @@ export default function AdminMasterPage() {
                         <td className="py-2.5 px-3 text-center">
                           <button
                             onClick={() => handleToggleStatusPenghulu(item)}
-                            title="Klik untuk ubah status Aktif / Pensiun"
+                            title="Klik untuk ubah status Aktif / Non Aktif"
                             className="inline-flex cursor-pointer"
                           >
                             {item.status === 'aktif' ? (
@@ -544,8 +568,8 @@ export default function AdminMasterPage() {
                                 Aktif
                               </span>
                             ) : (
-                              <span className="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-amber-300">
-                                Pensiun
+                              <span className="bg-slate-200 text-slate-700 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-slate-300">
+                                Non Aktif
                               </span>
                             )}
                           </button>
@@ -556,6 +580,7 @@ export default function AdminMasterPage() {
                               onClick={() => {
                                 setEditPenghuluId(item.id);
                                 setNamaPenghulu(item.nama_penghulu);
+                                setNipPenghulu(item.nip || '');
                                 setSelectedKecId(item.kecamatan_id || '');
                                 setStatusPenghulu(item.status);
                               }}
