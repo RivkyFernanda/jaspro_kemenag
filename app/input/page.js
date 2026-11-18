@@ -11,7 +11,9 @@ import {
   Clock, 
   FileText, 
   Building2, 
-  User 
+  User,
+  Sparkles,
+  Info
 } from 'lucide-react';
 
 const BULAN_OPTIONS = [
@@ -81,12 +83,12 @@ export default function InputLaporanPage() {
           .from('penghulu')
           .select('id, nama_penghulu, nip, status')
           .eq('kecamatan_id', selectedKecamatan)
-          .eq('status', 'aktif') // KETENTUAN KETAT: Hanya status 'aktif'
+          .eq('status', 'aktif')
           .order('nama_penghulu', { ascending: true });
 
         if (error) throw error;
         setPenghuluAktifList(data || []);
-        setSelectedPenghulu(''); // Reset pilihan penghulu saat kecamatan berubah
+        setSelectedPenghulu('');
       } catch (err) {
         console.error('Load penghulu error:', err);
       } finally {
@@ -103,14 +105,13 @@ export default function InputLaporanPage() {
     setNotice({ type: '', message: '' });
 
     if (!selectedKecamatan || !selectedPenghulu || !nomorSurat.trim()) {
-      setNotice({ type: 'error', message: 'Lengkapi semua field form yang wajib diisi' });
+      setNotice({ type: 'error', message: 'Lengkapi semua kolom formulir yang bertanda bintang (*)' });
       return;
     }
 
     setLoading(true);
     try {
-      // VALIDASI JADWAL BENTROK:
-      // Cek apakah ada laporan dengan Penghulu yang sama, Tanggal yang sama, dan Jam yang sama
+      // VALIDASI JADWAL BENTROK
       const { data: existingSchedules, error: checkError } = await supabase
         .from('laporan_jaspro')
         .select('id, nomor_surat, tanggal, jam_pelaksanaan, penghulu:penghulu(nama_penghulu)')
@@ -127,7 +128,7 @@ export default function InputLaporanPage() {
         const namaP = bentrok.penghulu?.nama_penghulu || 'penghulu terkait';
         setNotice({
           type: 'error',
-          message: `⚠️ Jadwal bentrok! ${namaP} sudah memiliki agenda pada tanggal ${tanggal} jam ${jamPelaksanaan} (Nomor Surat: ${bentrok.nomor_surat}). Silakan ganti jam atau tanggal.`,
+          message: `⚠️ Jadwal bentrok! ${namaP} sudah memiliki agenda tugas pada tanggal ${tanggal} jam ${jamPelaksanaan} (Nomor Surat: ${bentrok.nomor_surat}). Silakan pilih jam atau tanggal lain.`,
         });
         setLoading(false);
         return;
@@ -142,10 +143,9 @@ export default function InputLaporanPage() {
         jam_pelaksanaan: jamPelaksanaan,
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('laporan_jaspro')
-        .insert([payload])
-        .select();
+        .insert([payload]);
 
       if (error) throw error;
 
@@ -154,10 +154,7 @@ export default function InputLaporanPage() {
         message: 'Laporan Jaspro berhasil disimpan ke database!',
       });
 
-      // Reset form input sesuai permintaan:
-      // Kecamatan, Penghulu, dan Nomor Surat di-reset kosong.
-      // Jam pelaksanaan di-reset menjadi 00:00.
-      // Bulan dan Tanggal pelaksanaan TETAP DIPERTAHANKAN.
+      // Reset form input
       setSelectedKecamatan('');
       setSelectedPenghulu('');
       setPenghuluAktifList([]);
@@ -175,166 +172,201 @@ export default function InputLaporanPage() {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6">
-      {/* Header Form */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-2">
-          <span>Form Input Laporan Jaspro</span>
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Formulir pencatatan kegiatan Jasa Profesi (Jaspro) resmi Kementerian Agama
-        </p>
+    <div className="w-full max-w-4xl mx-auto space-y-6">
+      
+      {/* Welcome Banner Card */}
+      <div className="bg-gradient-to-r from-emerald-800 to-teal-800 rounded-2xl p-6 text-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-[11px] font-bold tracking-widest uppercase bg-emerald-700/80 text-emerald-200 px-3 py-1 rounded-full border border-emerald-500/30 inline-block mb-2">
+            MODUL JASA PROFESI
+          </span>
+          <h1 className="text-2xl font-bold tracking-tight">Formulir Pencatatan Jaspro</h1>
+          <p className="text-emerald-100 text-xs sm:text-sm mt-1">
+            Input tugas pelayanan nikah resmi KUA Kecamatan se-Kabupaten/Kota
+          </p>
+        </div>
+        <div className="hidden sm:flex items-center space-x-2 bg-white/10 px-4 py-2.5 rounded-xl border border-white/10 text-xs text-emerald-100">
+          <Sparkles className="w-4 h-4 text-emerald-300" />
+          <span>Validasi Jadwal Otomatis</span>
+        </div>
+      </div>
 
-        {notice.message && (
-          <div
-            className={`mt-4 p-4 rounded-xl flex items-center space-x-3 text-sm font-medium ${
-              notice.type === 'success'
-                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                : 'bg-red-50 text-red-800 border border-red-200'
-            }`}
-          >
-            {notice.type === 'success' ? (
-              <CheckCircle className="w-5 h-5 shrink-0 text-emerald-600" />
-            ) : (
-              <AlertCircle className="w-5 h-5 shrink-0 text-red-600" />
-            )}
-            <span>{notice.message}</span>
-          </div>
-        )}
+      {/* Notice Card */}
+      {notice.message && (
+        <div
+          className={`p-4 rounded-xl flex items-start space-x-3 text-sm font-medium shadow-xs transition ${
+            notice.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}
+        >
+          {notice.type === 'success' ? (
+            <CheckCircle className="w-5 h-5 shrink-0 text-emerald-600 mt-0.5" />
+          ) : (
+            <AlertCircle className="w-5 h-5 shrink-0 text-red-600 mt-0.5" />
+          )}
+          <span>{notice.message}</span>
+        </div>
+      )}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-          {/* Dropdown Kecamatan */}
+      {/* Main Form Box */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-6 sm:p-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* Section 1: Wilayah & Petugas */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1 flex items-center space-x-1">
-              <Building2 className="w-4 h-4 text-emerald-700" />
-              <span>Kecamatan *</span>
-            </label>
-            <select
-              value={selectedKecamatan}
-              onChange={(e) => setSelectedKecamatan(e.target.value)}
-              required
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white transition"
-            >
-              <option value="">-- Pilih Kecamatan --</option>
-              {kecamatanList.map((kec) => (
-                <option key={kec.id} value={kec.id}>
-                  Kecamatan {kec.nama_kecamatan}
-                </option>
-              ))}
-            </select>
-          </div>
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">
+              1. Data Wilayah & Petugas Penghulu
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Dropdown Kecamatan */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center space-x-1.5">
+                  <Building2 className="w-4 h-4 text-emerald-700" />
+                  <span>Kecamatan Tugas *</span>
+                </label>
+                <select
+                  value={selectedKecamatan}
+                  onChange={(e) => setSelectedKecamatan(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white transition cursor-pointer"
+                >
+                  <option value="">-- Pilih Kecamatan --</option>
+                  {kecamatanList.map((kec) => (
+                    <option key={kec.id} value={kec.id}>
+                      Kecamatan {kec.nama_kecamatan}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          {/* Dropdown Penghulu (Otomatis difilter hanya yang 'aktif' dan sesuai kecamatan) */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1 flex items-center space-x-1">
-              <User className="w-4 h-4 text-emerald-700" />
-              <span>Nama Penghulu (Status Aktif) *</span>
-            </label>
-            <select
-              value={selectedPenghulu}
-              onChange={(e) => setSelectedPenghulu(e.target.value)}
-              disabled={!selectedKecamatan || loadingPenghulu}
-              required
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white transition disabled:opacity-50"
-            >
-              <option value="">
-                {!selectedKecamatan
-                  ? '-- Pilih Kecamatan Terlebih Dahulu --'
-                  : loadingPenghulu
-                  ? 'Memuat data penghulu...'
-                  : penghuluAktifList.length === 0
-                  ? 'Tidak ada penghulu berstatus aktif di kecamatan ini'
-                  : '-- Pilih Penghulu --'}
-              </option>
-              {penghuluAktifList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nama_penghulu} {p.nip ? `(NIP. ${p.nip})` : ''}
-                </option>
-              ))}
-            </select>
-            {selectedKecamatan && penghuluAktifList.length === 0 && !loadingPenghulu && (
-              <p className="text-xs text-amber-600 mt-1">
-                Catatan: Penghulu yang berstatus <em>non aktif</em> tidak akan ditampilkan di formulir ini.
-              </p>
-            )}
-          </div>
-
-          {/* Grid Periode: Bulan, Tanggal, Jam */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Bulan */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">
-                Bulan Pelaporan *
-              </label>
-              <select
-                value={bulan}
-                onChange={(e) => setBulan(e.target.value)}
-                required
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white transition"
-              >
-                {BULAN_OPTIONS.map((bln) => (
-                  <option key={bln} value={bln}>
-                    {bln}
+              {/* Dropdown Penghulu */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center space-x-1.5">
+                  <User className="w-4 h-4 text-emerald-700" />
+                  <span>Nama Penghulu (Status Aktif) *</span>
+                </label>
+                <select
+                  value={selectedPenghulu}
+                  onChange={(e) => setSelectedPenghulu(e.target.value)}
+                  disabled={!selectedKecamatan || loadingPenghulu}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white transition disabled:opacity-50 cursor-pointer"
+                >
+                  <option value="">
+                    {!selectedKecamatan
+                      ? '-- Pilih Kecamatan Terlebih Dahulu --'
+                      : loadingPenghulu
+                      ? 'Memuat data penghulu...'
+                      : penghuluAktifList.length === 0
+                      ? 'Tidak ada penghulu berstatus aktif di kecamatan ini'
+                      : '-- Pilih Penghulu --'}
                   </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Tanggal Pelaksanaan */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1 flex items-center space-x-1">
-                <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                <span>Tanggal Pelaksanaan *</span>
-              </label>
-              <input
-                type="date"
-                value={tanggal}
-                onChange={(e) => setTanggal(e.target.value)}
-                required
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white transition"
-              />
-            </div>
-
-            {/* Jam Pelaksanaan */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1 flex items-center space-x-1">
-                <Clock className="w-3.5 h-3.5 text-slate-500" />
-                <span>Jam Pelaksanaan *</span>
-              </label>
-              <input
-                type="time"
-                value={jamPelaksanaan}
-                onChange={(e) => setJamPelaksanaan(e.target.value)}
-                required
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white transition"
-              />
+                  {penghuluAktifList.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nama_penghulu} {p.nip ? `(NIP. ${p.nip})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {selectedKecamatan && penghuluAktifList.length === 0 && !loadingPenghulu && (
+                  <p className="text-[11px] text-amber-600 mt-1 flex items-center space-x-1">
+                    <Info className="w-3.5 h-3.5 inline shrink-0" />
+                    <span>Penghulu berstatus <em>non aktif</em> tidak ditampilkan.</span>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Nomor Surat Tugas / Pencatatan */}
+          {/* Section 2: Waktu Pelaksanaan */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1 flex items-center space-x-1">
-              <FileText className="w-4 h-4 text-emerald-700" />
-              <span>Nomor Surat Tugas / Nikah *</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Contoh: B-124/Kua.01/PW.01/10/2026"
-              value={nomorSurat}
-              onChange={(e) => setNomorSurat(e.target.value)}
-              required
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white transition"
-            />
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">
+              2. Waktu Pelaksanaan Tugas
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {/* Bulan */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Bulan Pelaporan *
+                </label>
+                <select
+                  value={bulan}
+                  onChange={(e) => setBulan(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white transition cursor-pointer"
+                >
+                  {BULAN_OPTIONS.map((bln) => (
+                    <option key={bln} value={bln}>
+                      {bln}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tanggal Pelaksanaan */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center space-x-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Tanggal Pelaksanaan *</span>
+                </label>
+                <input
+                  type="date"
+                  value={tanggal}
+                  onChange={(e) => setTanggal(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white transition"
+                />
+              </div>
+
+              {/* Jam Pelaksanaan */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center space-x-1.5">
+                  <Clock className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Jam Pelaksanaan (WIB) *</span>
+                </label>
+                <input
+                  type="time"
+                  value={jamPelaksanaan}
+                  onChange={(e) => setJamPelaksanaan(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white transition"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Legalitas / Nomor Surat */}
+          <div>
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">
+              3. Legalitas Administrasi
+            </h2>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center space-x-1.5">
+                <FileText className="w-4 h-4 text-emerald-700" />
+                <span>Nomor Surat Tugas / Pencatatan Nikah *</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: B-124/Kua.01/PW.01/10/2026"
+                value={nomorSurat}
+                onChange={(e) => setNomorSurat(e.target.value)}
+                required
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white transition"
+              />
+            </div>
           </div>
 
           {/* Tombol Simpan */}
-          <div className="pt-3">
+          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span className="text-xs text-slate-400">
+              * Pastikan seluruh data sudah sesuai sebelum menekan tombol simpan
+            </span>
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center space-x-2 shadow-md hover:shadow-lg transition duration-200 disabled:opacity-50 cursor-pointer"
+              className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white font-bold py-3 px-8 rounded-xl flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition duration-200 disabled:opacity-50 cursor-pointer"
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-4 h-4" />
               <span>{loading ? 'Menyimpan ke Database...' : 'Simpan Laporan Jaspro'}</span>
             </button>
           </div>
@@ -343,4 +375,3 @@ export default function InputLaporanPage() {
     </div>
   );
 }
-
