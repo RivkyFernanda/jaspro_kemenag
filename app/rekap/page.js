@@ -13,8 +13,12 @@ import {
   Building2, 
   UserCheck, 
   FileSpreadsheet,
-  Trash2
+  Trash2,
+  Edit3,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
+import EditLaporanModal from '@/components/EditLaporanModal';
 
 export default function RekapitulasiPage() {
   const router = useRouter();
@@ -22,6 +26,11 @@ export default function RekapitulasiPage() {
   // State data asli dari Supabase
   const [laporanList, setLaporanList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [notification, setNotification] = useState({ type: '', message: '' });
+
+  // Modal edit state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedLaporanEdit, setSelectedLaporanEdit] = useState(null);
 
   // Filter & Search states
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,6 +95,37 @@ export default function RekapitulasiPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const showNotice = (type, message) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification({ type: '', message: '' }), 4000);
+  };
+
+  // Hapus Data Laporan
+  const handleDeleteLaporan = async (id, nomorSurat) => {
+    if (!window.confirm(`Yakin ingin menghapus laporan dengan Nomor Surat: "${nomorSurat}"?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('laporan_jaspro')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      showNotice('success', `Laporan "${nomorSurat}" berhasil dihapus.`);
+      fetchLaporanData();
+    } catch (err) {
+      showNotice('error', 'Gagal menghapus laporan: ' + err.message);
+    }
+  };
+
+  // Buka Modal Edit Laporan
+  const handleOpenEdit = (item) => {
+    setSelectedLaporanEdit(item);
+    setEditModalOpen(true);
   };
 
   // SEARCH ENGINE & REALTIME FILTER
@@ -194,6 +234,24 @@ export default function RekapitulasiPage() {
         </div>
       </div>
 
+      {/* Notifikasi feedback */}
+      {notification.message && (
+        <div
+          className={`p-4 rounded-xl flex items-center space-x-3 text-sm font-medium transition ${
+            notification.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}
+        >
+          {notification.type === 'success' ? (
+            <CheckCircle className="w-5 h-5 shrink-0 text-emerald-600" />
+          ) : (
+            <AlertCircle className="w-5 h-5 shrink-0 text-red-600" />
+          )}
+          <span>{notification.message}</span>
+        </div>
+      )}
+
       {/* FILTER & REALTIME SEARCH ENGINE */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -281,12 +339,13 @@ export default function RekapitulasiPage() {
                 <th className="py-3 px-4">Bulan</th>
                 <th className="py-3 px-4">Tanggal & Jam</th>
                 <th className="py-3 px-4 text-center">Status Penghulu</th>
+                <th className="py-3 px-4 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
                       <span>Mengambil data dari Supabase...</span>
@@ -295,7 +354,7 @@ export default function RekapitulasiPage() {
                 </tr>
               ) : filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
                     Tidak ditemukan data laporan yang sesuai kriteria pencarian
                   </td>
                 </tr>
@@ -338,6 +397,24 @@ export default function RekapitulasiPage() {
                         </span>
                       )}
                     </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end space-x-1">
+                        <button
+                          onClick={() => handleOpenEdit(row)}
+                          className="text-emerald-700 hover:text-emerald-900 p-1.5 rounded transition cursor-pointer"
+                          title="Edit laporan"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLaporan(row.id, row.nomor_surat)}
+                          className="text-red-500 hover:text-red-700 p-1.5 rounded transition cursor-pointer"
+                          title="Hapus laporan"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -345,6 +422,20 @@ export default function RekapitulasiPage() {
           </table>
         </div>
       </div>
+
+      {/* Modal Edit Laporan */}
+      <EditLaporanModal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedLaporanEdit(null);
+        }}
+        laporan={selectedLaporanEdit}
+        onSaved={() => {
+          showNotice('success', 'Laporan Jaspro berhasil diperbarui!');
+          fetchLaporanData();
+        }}
+      />
     </div>
   );
 }

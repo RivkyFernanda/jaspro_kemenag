@@ -14,8 +14,10 @@ import {
   Mail, 
   ChevronDown,
   Inbox,
-  SendHorizontal
+  SendHorizontal,
+  KeyRound
 } from 'lucide-react';
+import ChangePasswordModal from './ChangePasswordModal';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -26,6 +28,7 @@ export default function Navbar() {
   // Dropdown states
   const [jasproDropdownOpen, setJasproDropdownOpen] = useState(false);
   const [suratDropdownOpen, setSuratDropdownOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const jasproRef = useRef(null);
   const suratRef = useRef(null);
@@ -197,7 +200,7 @@ export default function Navbar() {
           </div>
 
           {/* User Info & Logout Button */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3">
             {currentUser && (
               <div className="flex items-center space-x-2 text-xs text-emerald-100 bg-emerald-900/50 px-3 py-1.5 rounded-full border border-emerald-700">
                 <UserCheck className="w-4 h-4 text-emerald-300" />
@@ -208,11 +211,19 @@ export default function Navbar() {
               </div>
             )}
             <button
+              onClick={() => setChangePasswordOpen(true)}
+              className="flex items-center space-x-1 bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-md text-xs font-medium transition cursor-pointer border border-emerald-600"
+              title="Ganti Password"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Ganti Password</span>
+            </button>
+            <button
               onClick={handleLogout}
-              className="flex items-center space-x-1 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer"
+              className="flex items-center space-x-1 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer"
               title="Keluar dari sistem"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5" />
               <span>Keluar</span>
             </button>
           </div>
@@ -302,16 +313,34 @@ export default function Navbar() {
                 {currentUser.nama_lengkap || currentUser.username}
               </span>
             )}
-            <button
-              onClick={handleLogout}
-              className="flex items-center space-x-1 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Keluar</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setChangePasswordOpen(true);
+                }}
+                className="flex items-center space-x-1 bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded-md text-xs font-medium cursor-pointer"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Password</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-1 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Keluar</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Modal Ganti Password */}
+      <ChangePasswordModal
+        isOpen={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
     </nav>
   );
 }
