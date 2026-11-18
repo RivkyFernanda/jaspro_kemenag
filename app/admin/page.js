@@ -3,14 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { 
-  Building, 
-  UserCheck, 
-  PlusCircle, 
-  Edit3, 
-  ToggleLeft, 
-  ToggleRight, 
-  CheckCircle, 
+import {
+  Building,
+  UserCheck,
+  PlusCircle,
+  Edit3,
+  ToggleLeft,
+  ToggleRight,
+  CheckCircle,
   AlertCircle,
   RefreshCw,
   Trash2
@@ -31,6 +31,7 @@ export default function AdminMasterPage() {
   const [selectedKecId, setSelectedKecId] = useState('');
   const [statusPenghulu, setStatusPenghulu] = useState('aktif');
   const [editPenghuluId, setEditPenghuluId] = useState(null);
+  const [filterKecamatanPenghulu, setFilterKecamatanPenghulu] = useState('');
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -210,7 +211,7 @@ export default function AdminMasterPage() {
 
       if (error) throw error;
       showNotice(
-        'success', 
+        'success',
         `Status ${penghulu.nama_penghulu} diubah menjadi: ${nextStatus.toUpperCase()}`
       );
       fetchPenghulu();
@@ -283,11 +284,10 @@ export default function AdminMasterPage() {
       {/* Notifikasi feedback */}
       {notification.message && (
         <div
-          className={`p-4 rounded-xl flex items-center space-x-3 text-sm font-medium transition ${
-            notification.type === 'success'
+          className={`p-4 rounded-xl flex items-center space-x-3 text-sm font-medium transition ${notification.type === 'success'
               ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
               : 'bg-red-50 text-red-800 border border-red-200'
-          }`}
+            }`}
         >
           {notification.type === 'success' ? (
             <CheckCircle className="w-5 h-5 shrink-0 text-emerald-600" />
@@ -300,7 +300,7 @@ export default function AdminMasterPage() {
 
       {/* Grid 2 Kolom: Master Kecamatan & Master Penghulu */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+
         {/* ================= SECTION KECAMATAN ================= */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
           <div>
@@ -527,8 +527,41 @@ export default function AdminMasterPage() {
               </div>
             </form>
 
+            {/* Filter Penghulu Berdasarkan Kecamatan */}
+            <div className="mt-5 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label className="text-xs font-semibold text-slate-700 flex items-center space-x-1">
+                <span>Filter Per Kecamatan:</span>
+              </label>
+              <div className="flex items-center space-x-2 w-full sm:w-auto">
+                <select
+                  value={filterKecamatanPenghulu}
+                  onChange={(e) => setFilterKecamatanPenghulu(e.target.value)}
+                  className="w-full sm:w-60 px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:bg-white"
+                >
+                  <option value="">Semua Kecamatan ({penghuluList.length})</option>
+                  {kecamatanList.map((k) => {
+                    const countInKec = penghuluList.filter((p) => p.kecamatan_id == k.id).length;
+                    return (
+                      <option key={k.id} value={k.id}>
+                        {k.nama_kecamatan} ({countInKec})
+                      </option>
+                    );
+                  })}
+                </select>
+                {filterKecamatanPenghulu && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterKecamatanPenghulu('')}
+                    className="text-xs text-teal-700 hover:underline shrink-0"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* List Tabel Penghulu */}
-            <div className="mt-5 overflow-x-auto">
+            <div className="mt-3 overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-500 bg-slate-50">
@@ -539,67 +572,75 @@ export default function AdminMasterPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {penghuluList.length === 0 ? (
+                  {penghuluList.filter(
+                    (p) => !filterKecamatanPenghulu || p.kecamatan_id == filterKecamatanPenghulu
+                  ).length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="py-4 text-center text-slate-400">
-                        Belum ada data penghulu di database
+                      <td colSpan={4} className="py-6 text-center text-slate-400 text-xs">
+                        {filterKecamatanPenghulu
+                          ? 'Belum ada penghulu di kecamatan yang dipilih'
+                          : 'Belum ada data penghulu di database'}
                       </td>
                     </tr>
                   ) : (
-                    penghuluList.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50">
-                        <td className="py-2.5 px-3">
-                          <div className="font-medium text-slate-800">{item.nama_penghulu}</div>
-                          <div className="text-xs text-slate-400 font-mono">
-                            {item.nip ? `NIP. ${item.nip}` : 'NIP: -'}
-                          </div>
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-600">
-                          {item.kecamatan?.nama_kecamatan || '-'}
-                        </td>
-                        <td className="py-2.5 px-3 text-center">
-                          <button
-                            onClick={() => handleToggleStatusPenghulu(item)}
-                            title="Klik untuk ubah status Aktif / Non Aktif"
-                            className="inline-flex cursor-pointer"
-                          >
-                            {item.status === 'aktif' ? (
-                              <span className="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-emerald-300">
-                                Aktif
-                              </span>
-                            ) : (
-                              <span className="bg-slate-200 text-slate-700 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-slate-300">
-                                Non Aktif
-                              </span>
-                            )}
-                          </button>
-                        </td>
-                        <td className="py-2.5 px-3 text-right">
-                          <div className="flex items-center justify-end space-x-1">
+                    penghuluList
+                      .filter(
+                        (p) => !filterKecamatanPenghulu || p.kecamatan_id == filterKecamatanPenghulu
+                      )
+                      .map((item) => (
+                        <tr key={item.id} className="hover:bg-slate-50">
+                          <td className="py-2.5 px-3">
+                            <div className="font-medium text-slate-800">{item.nama_penghulu}</div>
+                            <div className="text-xs text-slate-400 font-mono">
+                              {item.nip ? `NIP. ${item.nip}` : 'NIP: -'}
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600">
+                            {item.kecamatan?.nama_kecamatan || '-'}
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
                             <button
-                              onClick={() => {
-                                setEditPenghuluId(item.id);
-                                setNamaPenghulu(item.nama_penghulu);
-                                setNipPenghulu(item.nip || '');
-                                setSelectedKecId(item.kecamatan_id || '');
-                                setStatusPenghulu(item.status);
-                              }}
-                              className="text-teal-700 hover:text-teal-900 p-1 rounded"
-                              title="Edit data penghulu"
+                              onClick={() => handleToggleStatusPenghulu(item)}
+                              title="Klik untuk ubah status Aktif / Non Aktif"
+                              className="inline-flex cursor-pointer"
                             >
-                              <Edit3 className="w-4 h-4" />
+                              {item.status === 'aktif' ? (
+                                <span className="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-emerald-300">
+                                  Aktif
+                                </span>
+                              ) : (
+                                <span className="bg-slate-200 text-slate-700 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-slate-300">
+                                  Non Aktif
+                                </span>
+                              )}
                             </button>
-                            <button
-                              onClick={() => handleDeletePenghulu(item)}
-                              className="text-red-500 hover:text-red-700 p-1 rounded transition"
-                              title="Hapus penghulu (laporan historis tetap aman)"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            <div className="flex items-center justify-end space-x-1">
+                              <button
+                                onClick={() => {
+                                  setEditPenghuluId(item.id);
+                                  setNamaPenghulu(item.nama_penghulu);
+                                  setNipPenghulu(item.nip || '');
+                                  setSelectedKecId(item.kecamatan_id || '');
+                                  setStatusPenghulu(item.status);
+                                }}
+                                className="text-teal-700 hover:text-teal-900 p-1 rounded"
+                                title="Edit data penghulu"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeletePenghulu(item)}
+                                className="text-red-500 hover:text-red-700 p-1 rounded transition"
+                                title="Hapus penghulu (laporan historis tetap aman)"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
                   )}
                 </tbody>
               </table>

@@ -32,7 +32,7 @@ export default function InputLaporanPage() {
   const [bulan, setBulan] = useState(BULAN_OPTIONS[new Date().getMonth()]);
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [nomorSurat, setNomorSurat] = useState('');
-  const [jamPelaksanaan, setJamPelaksanaan] = useState('09:00');
+  const [jamPelaksanaan, setJamPelaksanaan] = useState('00:00');
 
   // UI status
   const [loading, setLoading] = useState(false);
@@ -154,9 +154,15 @@ export default function InputLaporanPage() {
         message: 'Laporan Jaspro berhasil disimpan ke database!',
       });
 
-      // Reset form input
+      // Reset form input sesuai permintaan:
+      // Kecamatan, Penghulu, dan Nomor Surat di-reset kosong.
+      // Jam pelaksanaan di-reset menjadi 00:00.
+      // Bulan dan Tanggal pelaksanaan TETAP DIPERTAHANKAN.
+      setSelectedKecamatan('');
+      setSelectedPenghulu('');
+      setPenghuluAktifList([]);
       setNomorSurat('');
-      // Tetapkan jam atau tanggal jika ingin diisi ulang
+      setJamPelaksanaan('00:00');
     } catch (err) {
       console.error('Insert laporan error:', err);
       setNotice({
